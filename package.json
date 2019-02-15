@@ -12,7 +12,7 @@
     "Christian Werner <christian.werner@5minds.de>"
   ],
   "dependencies": {
-    "@process-engine/process_model.contracts": "^0.0.1"
+    "@process-engine/process_model.contracts": "feature~initial_implementation"
   },
   "devDependencies": {
     "@essential-projects/tslint-config": "^1.1.3",
