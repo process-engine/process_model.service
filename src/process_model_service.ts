@@ -1,4 +1,5 @@
 import {
+  BpmnType,
   Definitions,
   IModelParser,
   IProcessDefinitionRepository,
@@ -371,7 +372,7 @@ export class ProcessModelService implements IProcessModelService {
 
     // For this check to pass, it is sufficient for the ProcessModel to have at least one accessible start event.
     const processModelHasAccessibleStartEvent: boolean = processModel.flowNodes.some((flowNode: Model.Base.FlowNode): boolean => {
-      return flowNode instanceof Model.Events.StartEvent;
+      return flowNode.bpmnType === BpmnType.startEvent;
     });
 
     return processModelHasAccessibleStartEvent;
