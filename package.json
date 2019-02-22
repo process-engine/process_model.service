@@ -12,7 +12,7 @@
     "Christian Werner <christian.werner@5minds.de>"
   ],
   "dependencies": {
-    "@process-engine/process_model.contracts": "^1.0.0",
+    "@process-engine/process_model.contracts": "feature~refactor_model_namespace",
     "bluebird-global": "^1.0.1"
   },
   "devDependencies": {
