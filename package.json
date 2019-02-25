@@ -12,8 +12,10 @@
     "Christian Werner <christian.werner@5minds.de>"
   ],
   "dependencies": {
+    "@essential-projects/errors_ts": "^1.4.4",
     "@process-engine/process_model.contracts": "feature~refactor_model_namespace",
-    "bluebird-global": "^1.0.1"
+    "bluebird-global": "^1.0.1",
+    "loggerhythm": "^3.0.3"
   },
   "devDependencies": {
     "@essential-projects/tslint-config": "^1.1.3",
