@@ -13,7 +13,7 @@
   ],
   "dependencies": {
     "@essential-projects/errors_ts": "^1.4.4",
-    "@process-engine/process_model.contracts": "feature~refactor_model_namespace",
+    "@process-engine/process_model.contracts": "^2.0.0",
     "bluebird-global": "^1.0.1",
     "loggerhythm": "^3.0.3"
   },
