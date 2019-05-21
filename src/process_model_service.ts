@@ -291,11 +291,9 @@ export class ProcessModelService implements IProcessModelService {
       // Consider a user who can only access sublane B.
       // If we were to allow him access to all references stored in lane A, he would also be granted access to the elements
       // from lane C, since they are contained within the reference set of lane A!
-      const childLaneSetIsNotEmpty = lane.childLaneSet !== undefined &&
-                                     lane.childLaneSet.lanes !== undefined &&
-                                     lane.childLaneSet.lanes.length > 0;
+      const childLaneSetIsEmpty = !lane.childLaneSet || !lane.childLaneSet.lanes || lane.childLaneSet.lanes.length === 0;
 
-      if (childLaneSetIsNotEmpty) {
+      if (!childLaneSetIsEmpty) {
         const accessibleChildLaneFlowNodes = this.getFlowNodesForLaneSet(lane.childLaneSet, flowNodes);
 
         accessibleFlowNodes.push(...accessibleChildLaneFlowNodes);
