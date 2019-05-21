@@ -18,12 +18,12 @@ const logger: Logger = Logger.createLogger('processengine:persistence:process_mo
 
 export class ProcessModelService implements IProcessModelService {
 
-  private readonly _processDefinitionRepository: IProcessDefinitionRepository;
-  private readonly _iamService: IIAMService;
-  private readonly _bpmnModelParser: IModelParser = undefined;
+  private readonly processDefinitionRepository: IProcessDefinitionRepository;
+  private readonly iamService: IIAMService;
+  private readonly bpmnModelParser: IModelParser = undefined;
 
-  private _canReadProcessModelClaim: string = 'can_read_process_model';
-  private _canWriteProcessModelClaim: string = 'can_write_process_model';
+  private canReadProcessModelClaim: string = 'can_read_process_model';
+  private canWriteProcessModelClaim: string = 'can_write_process_model';
 
   constructor(
     bpmnModelParser: IModelParser,
@@ -31,9 +31,9 @@ export class ProcessModelService implements IProcessModelService {
     processDefinitionRepository: IProcessDefinitionRepository,
   ) {
 
-    this._processDefinitionRepository = processDefinitionRepository;
-    this._iamService = iamService;
-    this._bpmnModelParser = bpmnModelParser;
+    this.processDefinitionRepository = processDefinitionRepository;
+    this.iamService = iamService;
+    this.bpmnModelParser = bpmnModelParser;
   }
 
   public async persistProcessDefinitions(identity: IIdentity,
@@ -42,23 +42,23 @@ export class ProcessModelService implements IProcessModelService {
                                          overwriteExisting: boolean = true,
                                        ): Promise<void> {
 
-    await this._iamService.ensureHasClaim(identity, this._canWriteProcessModelClaim);
-    await this._validateDefinition(name, xml);
+    await this.iamService.ensureHasClaim(identity, this.canWriteProcessModelClaim);
+    await this.validateDefinition(name, xml);
 
-    return this._processDefinitionRepository.persistProcessDefinitions(name, xml, overwriteExisting);
+    return this.processDefinitionRepository.persistProcessDefinitions(name, xml, overwriteExisting);
   }
 
   public async getProcessModels(identity: IIdentity): Promise<Array<Model.Process>> {
 
-    await this._iamService.ensureHasClaim(identity, this._canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
 
-    const processModelList: Array<Model.Process> = await this._getProcessModelList();
+    const processModelList: Array<Model.Process> = await this.getProcessModelList();
 
     const filteredList: Array<Model.Process> = [];
 
     for (const processModel of processModelList) {
       const filteredProcessModel: Model.Process =
-        await this._filterInaccessibleProcessModelElements(identity, processModel);
+        await this.filterInaccessibleProcessModelElements(identity, processModel);
 
       if (filteredProcessModel) {
         filteredList.push(filteredProcessModel);
@@ -70,11 +70,11 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessModelById(identity: IIdentity, processModelId: string): Promise<Model.Process> {
 
-    await this._iamService.ensureHasClaim(identity, this._canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
 
-    const processModel: Model.Process = await this._getProcessModelById(processModelId);
+    const processModel: Model.Process = await this.retrieveProcessModel(processModelId);
 
-    const filteredProcessModel: Model.Process = await this._filterInaccessibleProcessModelElements(identity, processModel);
+    const filteredProcessModel: Model.Process = await this.filterInaccessibleProcessModelElements(identity, processModel);
 
     if (!filteredProcessModel) {
       throw new ForbiddenError('Access denied.');
@@ -85,16 +85,16 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getByHash(identity: IIdentity, processModelId: string, hash: string): Promise<Model.Process> {
 
-    await this._iamService.ensureHasClaim(identity, this._canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
 
-    const definitionRaw: ProcessDefinitionFromRepository = await this._processDefinitionRepository.getByHash(hash);
+    const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getByHash(hash);
 
-    const parsedDefinition: Model.Definitions = await this._bpmnModelParser.parseXmlToObjectModel(definitionRaw.xml);
+    const parsedDefinition: Model.Definitions = await this.bpmnModelParser.parseXmlToObjectModel(definitionRaw.xml);
     const processModel: Model.Process = parsedDefinition.processes.find((entry: Model.Process) => {
       return entry.id === processModelId;
     });
 
-    const filteredProcessModel: Model.Process = await this._filterInaccessibleProcessModelElements(identity, processModel);
+    const filteredProcessModel: Model.Process = await this.filterInaccessibleProcessModelElements(identity, processModel);
 
     if (!filteredProcessModel) {
       throw new ForbiddenError('Access denied.');
@@ -105,9 +105,9 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessDefinitionAsXmlByName(identity: IIdentity, name: string): Promise<ProcessDefinitionFromRepository> {
 
-    await this._iamService.ensureHasClaim(identity, this._canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
 
-    const definitionRaw: ProcessDefinitionFromRepository = await this._processDefinitionRepository.getProcessDefinitionByName(name);
+    const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getProcessDefinitionByName(name);
 
     if (!definitionRaw) {
       throw new NotFoundError(`Process definition with name "${name}" not found!`);
@@ -117,15 +117,15 @@ export class ProcessModelService implements IProcessModelService {
   }
 
   public async deleteProcessDefinitionById(processModelId: string): Promise<void> {
-    this._processDefinitionRepository.deleteProcessDefinitionById(processModelId);
+    this.processDefinitionRepository.deleteProcessDefinitionById(processModelId);
   }
 
-  private async _validateDefinition(name: string, xml: string): Promise<void> {
+  private async validateDefinition(name: string, xml: string): Promise<void> {
 
     let parsedProcessDefinition: Model.Definitions;
 
     try {
-      parsedProcessDefinition = await this._bpmnModelParser.parseXmlToObjectModel(xml);
+      parsedProcessDefinition = await this.bpmnModelParser.parseXmlToObjectModel(xml);
     } catch (error) {
       logger.error(`The XML for process "${name}" could not be parsed: ${error.message}`);
       const errorMessage: string = `The XML for process "${name}" could not be parsed.`;
@@ -155,9 +155,9 @@ export class ProcessModelService implements IProcessModelService {
     }
   }
 
-  private async _getProcessModelById(processModelId: string): Promise<Model.Process> {
+  private async retrieveProcessModel(processModelId: string): Promise<Model.Process> {
 
-    const processModelList: Array<Model.Process> = await this._getProcessModelList();
+    const processModelList: Array<Model.Process> = await this.getProcessModelList();
 
     const matchingProcessModel: Model.Process = processModelList.find((processModel: Model.Process): boolean => {
       return processModel.id === processModelId;
@@ -170,9 +170,9 @@ export class ProcessModelService implements IProcessModelService {
     return matchingProcessModel;
   }
 
-  private async _getProcessModelList(): Promise<Array<Model.Process>> {
+  private async getProcessModelList(): Promise<Array<Model.Process>> {
 
-    const definitions: Array<Model.Definitions> = await this._getDefinitionList();
+    const definitions: Array<Model.Definitions> = await this.getDefinitionList();
 
     const allProcessModels: Array<Model.Process> = [];
 
@@ -183,12 +183,12 @@ export class ProcessModelService implements IProcessModelService {
     return allProcessModels;
   }
 
-  private async _getDefinitionList(): Promise<Array<Model.Definitions>> {
+  private async getDefinitionList(): Promise<Array<Model.Definitions>> {
 
-    const definitionsRaw: Array<ProcessDefinitionFromRepository> = await this._processDefinitionRepository.getProcessDefinitions();
+    const definitionsRaw: Array<ProcessDefinitionFromRepository> = await this.processDefinitionRepository.getProcessDefinitions();
 
     const definitionsMapper: any = async(rawProcessModelData: ProcessDefinitionFromRepository): Promise<Model.Definitions> => {
-      return this._bpmnModelParser.parseXmlToObjectModel(rawProcessModelData.xml);
+      return this.bpmnModelParser.parseXmlToObjectModel(rawProcessModelData.xml);
     };
 
     const definitionsList: Array<Model.Definitions> =
@@ -197,7 +197,7 @@ export class ProcessModelService implements IProcessModelService {
     return definitionsList;
   }
 
-  private async _filterInaccessibleProcessModelElements(identity: IIdentity,
+  private async filterInaccessibleProcessModelElements(identity: IIdentity,
                                                         processModel: Model.Process,
                                                        ): Promise<Model.Process> {
 
@@ -208,10 +208,10 @@ export class ProcessModelService implements IProcessModelService {
       return processModelCopy;
     }
 
-    processModelCopy.laneSet = await this._filterOutInaccessibleLanes(processModelCopy.laneSet, identity);
-    processModelCopy.flowNodes = this._getFlowNodesForLaneSet(processModelCopy.laneSet, processModel.flowNodes);
+    processModelCopy.laneSet = await this.filterOutInaccessibleLanes(processModelCopy.laneSet, identity);
+    processModelCopy.flowNodes = this.getFlowNodesForLaneSet(processModelCopy.laneSet, processModel.flowNodes);
 
-    const processModelHasAccessibleStartEvent: boolean = this._checkIfProcessModelHasAccessibleStartEvents(processModelCopy);
+    const processModelHasAccessibleStartEvent: boolean = this.checkIfProcessModelHasAccessibleStartEvents(processModelCopy);
 
     if (!processModelHasAccessibleStartEvent) {
       return undefined;
@@ -220,14 +220,14 @@ export class ProcessModelService implements IProcessModelService {
     return processModelCopy;
   }
 
-  private async _filterOutInaccessibleLanes(laneSet: Model.ProcessElements.LaneSet, identity: IIdentity): Promise<Model.ProcessElements.LaneSet> {
+  private async filterOutInaccessibleLanes(laneSet: Model.ProcessElements.LaneSet, identity: IIdentity): Promise<Model.ProcessElements.LaneSet> {
 
     const filteredLaneSet: Model.ProcessElements.LaneSet = clone(laneSet);
     filteredLaneSet.lanes = [];
 
     for (const lane of laneSet.lanes) {
 
-      const userCanNotAccessLane: boolean = !await this._checkIfUserCanAccesslane(identity, lane.name);
+      const userCanNotAccessLane: boolean = !await this.checkIfUserHasClaim(identity, lane.name);
       const filteredLane: Model.ProcessElements.Lane = clone(lane);
 
       if (userCanNotAccessLane) {
@@ -239,7 +239,7 @@ export class ProcessModelService implements IProcessModelService {
                                          filteredLane.childLaneSet !== null;
 
       if (laneHasChildLanes) {
-        filteredLane.childLaneSet = await this._filterOutInaccessibleLanes(filteredLane.childLaneSet, identity);
+        filteredLane.childLaneSet = await this.filterOutInaccessibleLanes(filteredLane.childLaneSet, identity);
       }
 
       filteredLaneSet.lanes.push(filteredLane);
@@ -248,9 +248,9 @@ export class ProcessModelService implements IProcessModelService {
     return filteredLaneSet;
   }
 
-  private async _checkIfUserCanAccesslane(identity: IIdentity, laneName: string): Promise<boolean> {
+  private async checkIfUserHasClaim(identity: IIdentity, laneName: string): Promise<boolean> {
     try {
-      await this._iamService.ensureHasClaim(identity, laneName);
+      await this.iamService.ensureHasClaim(identity, laneName);
 
       return true;
     } catch (error) {
@@ -258,7 +258,7 @@ export class ProcessModelService implements IProcessModelService {
     }
   }
 
-  private _getFlowNodesForLaneSet(laneSet: Model.ProcessElements.LaneSet, flowNodes: Array<Model.Base.FlowNode>): Array<Model.Base.FlowNode> {
+  private getFlowNodesForLaneSet(laneSet: Model.ProcessElements.LaneSet, flowNodes: Array<Model.Base.FlowNode>): Array<Model.Base.FlowNode> {
 
     const accessibleFlowNodes: Array<Model.Base.FlowNode> = [];
 
@@ -277,7 +277,7 @@ export class ProcessModelService implements IProcessModelService {
 
       if (childLaneSetIsNotEmpty) {
         const accessibleChildLaneFlowNodes: Array<Model.Base.FlowNode> =
-        this._getFlowNodesForLaneSet(lane.childLaneSet, flowNodes);
+        this.getFlowNodesForLaneSet(lane.childLaneSet, flowNodes);
 
         accessibleFlowNodes.push(...accessibleChildLaneFlowNodes);
       } else {
@@ -296,7 +296,7 @@ export class ProcessModelService implements IProcessModelService {
     return accessibleFlowNodes;
   }
 
-  private _checkIfProcessModelHasAccessibleStartEvents(processModel: Model.Process): boolean {
+  private checkIfProcessModelHasAccessibleStartEvents(processModel: Model.Process): boolean {
 
     // For this check to pass, it is sufficient for the ProcessModel to have at least one accessible start event.
     const processModelHasAccessibleStartEvent: boolean = processModel.flowNodes.some((flowNode: Model.Base.FlowNode): boolean => {
