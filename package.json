@@ -26,9 +26,13 @@
     "typescript": "^3.4.5"
   },
   "scripts": {
-    "build": "gulp build",
-    "lint": "gulp lint",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build-commonjs && npm run build-amd",
+    "build-commonjs": "tsc",
+    "build-amd": "tsc --module amd --outDir ./dist/amd",
     "prepare": "npm run build",
-    "test": "gulp test"
+    "lint": "eslint src/*.ts",
+    "lint-fix": "eslint --fix src/*.ts",
+    "test": ":"
   }
 }
