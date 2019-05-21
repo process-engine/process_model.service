@@ -16,14 +16,14 @@ import {Logger} from 'loggerhythm';
 
 const logger: Logger = Logger.createLogger('processengine:persistence:process_model_service');
 
+const canReadProcessModelClaim: string = 'can_read_process_model';
+const canWriteProcessModelClaim: string = 'can_write_process_model';
+
 export class ProcessModelService implements IProcessModelService {
 
   private readonly processDefinitionRepository: IProcessDefinitionRepository;
   private readonly iamService: IIAMService;
   private readonly bpmnModelParser: IModelParser = undefined;
-
-  private canReadProcessModelClaim: string = 'can_read_process_model';
-  private canWriteProcessModelClaim: string = 'can_write_process_model';
 
   constructor(
     bpmnModelParser: IModelParser,
@@ -42,7 +42,7 @@ export class ProcessModelService implements IProcessModelService {
                                          overwriteExisting: boolean = true,
                                        ): Promise<void> {
 
-    await this.iamService.ensureHasClaim(identity, this.canWriteProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, canWriteProcessModelClaim);
     await this.validateDefinition(name, xml);
 
     return this.processDefinitionRepository.persistProcessDefinitions(name, xml, overwriteExisting);
@@ -50,7 +50,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessModels(identity: IIdentity): Promise<Array<Model.Process>> {
 
-    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
 
     const processModelList: Array<Model.Process> = await this.getProcessModelList();
 
@@ -70,7 +70,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessModelById(identity: IIdentity, processModelId: string): Promise<Model.Process> {
 
-    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
 
     const processModel: Model.Process = await this.retrieveProcessModel(processModelId);
 
@@ -85,7 +85,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getByHash(identity: IIdentity, processModelId: string, hash: string): Promise<Model.Process> {
 
-    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
 
     const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getByHash(hash);
 
@@ -105,7 +105,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessDefinitionAsXmlByName(identity: IIdentity, name: string): Promise<ProcessDefinitionFromRepository> {
 
-    await this.iamService.ensureHasClaim(identity, this.canReadProcessModelClaim);
+    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
 
     const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getProcessDefinitionByName(name);
 
