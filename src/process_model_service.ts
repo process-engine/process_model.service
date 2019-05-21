@@ -16,6 +16,7 @@ import {Logger} from 'loggerhythm';
 
 const logger: Logger = Logger.createLogger('processengine:persistence:process_model_service');
 
+const superAdminClaim: string = 'can_manage_process_instances';
 const canReadProcessModelClaim: string = 'can_read_process_model';
 const canWriteProcessModelClaim: string = 'can_write_process_model';
 
@@ -42,7 +43,7 @@ export class ProcessModelService implements IProcessModelService {
                                          overwriteExisting: boolean = true,
                                        ): Promise<void> {
 
-    await this.iamService.ensureHasClaim(identity, canWriteProcessModelClaim);
+    await this.ensureUserHasClaim(identity, canWriteProcessModelClaim);
     await this.validateDefinition(name, xml);
 
     return this.processDefinitionRepository.persistProcessDefinitions(name, xml, overwriteExisting);
@@ -50,7 +51,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessModels(identity: IIdentity): Promise<Array<Model.Process>> {
 
-    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
+    await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
     const processModelList: Array<Model.Process> = await this.getProcessModelList();
 
@@ -70,7 +71,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessModelById(identity: IIdentity, processModelId: string): Promise<Model.Process> {
 
-    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
+    await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
     const processModel: Model.Process = await this.retrieveProcessModel(processModelId);
 
@@ -85,7 +86,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getByHash(identity: IIdentity, processModelId: string, hash: string): Promise<Model.Process> {
 
-    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
+    await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
     const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getByHash(hash);
 
@@ -105,7 +106,7 @@ export class ProcessModelService implements IProcessModelService {
 
   public async getProcessDefinitionAsXmlByName(identity: IIdentity, name: string): Promise<ProcessDefinitionFromRepository> {
 
-    await this.iamService.ensureHasClaim(identity, canReadProcessModelClaim);
+    await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
     const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getProcessDefinitionByName(name);
 
@@ -197,9 +198,10 @@ export class ProcessModelService implements IProcessModelService {
     return definitionsList;
   }
 
-  private async filterInaccessibleProcessModelElements(identity: IIdentity,
-                                                        processModel: Model.Process,
-                                                       ): Promise<Model.Process> {
+  private async filterInaccessibleProcessModelElements(
+    identity: IIdentity,
+    processModel: Model.Process,
+  ): Promise<Model.Process> {
 
     const processModelCopy: Model.Process = clone(processModel);
 
@@ -225,10 +227,23 @@ export class ProcessModelService implements IProcessModelService {
     const filteredLaneSet: Model.ProcessElements.LaneSet = clone(laneSet);
     filteredLaneSet.lanes = [];
 
+    const userIsSuperAdmin: boolean = await this.checkIfUserIsSuperAdmin(identity);
+
     for (const lane of laneSet.lanes) {
 
-      const userCanNotAccessLane: boolean = !await this.checkIfUserHasClaim(identity, lane.name);
+      const checkIfUserHasLaneClaim: any = async(laneName: string): Promise<boolean> => {
+        try {
+          await this.iamService.ensureHasClaim(identity, laneName);
+
+          return true;
+        } catch (error) {
+          return false;
+        }
+      };
+
       const filteredLane: Model.ProcessElements.Lane = clone(lane);
+
+      const userCanNotAccessLane: boolean = !(userIsSuperAdmin || await checkIfUserHasLaneClaim(lane.name));
 
       if (userCanNotAccessLane) {
         filteredLane.flowNodeReferences = [];
@@ -248,9 +263,19 @@ export class ProcessModelService implements IProcessModelService {
     return filteredLaneSet;
   }
 
-  private async checkIfUserHasClaim(identity: IIdentity, laneName: string): Promise<boolean> {
+  private async ensureUserHasClaim(identity: IIdentity, claimName: string): Promise<void> {
+    const userIsSuperAdmin: boolean = await this.checkIfUserIsSuperAdmin(identity);
+
+    if (userIsSuperAdmin) {
+      return;
+    }
+
+    await this.iamService.ensureHasClaim(identity, claimName);
+  }
+
+  private async checkIfUserIsSuperAdmin(identity: IIdentity): Promise<boolean> {
     try {
-      await this.iamService.ensureHasClaim(identity, laneName);
+      await this.iamService.ensureHasClaim(identity, superAdminClaim);
 
       return true;
     } catch (error) {
