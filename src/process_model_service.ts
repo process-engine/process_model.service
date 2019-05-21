@@ -14,11 +14,11 @@ import {ForbiddenError, NotFoundError, UnprocessableEntityError} from '@essentia
 import * as clone from 'clone';
 import {Logger} from 'loggerhythm';
 
-const logger: Logger = Logger.createLogger('processengine:persistence:process_model_service');
+const logger = Logger.createLogger('processengine:persistence:process_model_service');
 
-const superAdminClaim: string = 'can_manage_process_instances';
-const canReadProcessModelClaim: string = 'can_read_process_model';
-const canWriteProcessModelClaim: string = 'can_write_process_model';
+const superAdminClaim = 'can_manage_process_instances';
+const canReadProcessModelClaim = 'can_read_process_model';
+const canWriteProcessModelClaim = 'can_write_process_model';
 
 export class ProcessModelService implements IProcessModelService {
 
@@ -37,11 +37,12 @@ export class ProcessModelService implements IProcessModelService {
     this.bpmnModelParser = bpmnModelParser;
   }
 
-  public async persistProcessDefinitions(identity: IIdentity,
-                                         name: string,
-                                         xml: string,
-                                         overwriteExisting: boolean = true,
-                                       ): Promise<void> {
+  public async persistProcessDefinitions(
+    identity: IIdentity,
+    name: string,
+    xml: string,
+    overwriteExisting: boolean = true,
+  ): Promise<void> {
 
     await this.ensureUserHasClaim(identity, canWriteProcessModelClaim);
     await this.validateDefinition(name, xml);
@@ -53,13 +54,12 @@ export class ProcessModelService implements IProcessModelService {
 
     await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
-    const processModelList: Array<Model.Process> = await this.getProcessModelList();
+    const processModelList = await this.getProcessModelList();
 
     const filteredList: Array<Model.Process> = [];
 
     for (const processModel of processModelList) {
-      const filteredProcessModel: Model.Process =
-        await this.filterInaccessibleProcessModelElements(identity, processModel);
+      const filteredProcessModel = await this.filterInaccessibleProcessModelElements(identity, processModel);
 
       if (filteredProcessModel) {
         filteredList.push(filteredProcessModel);
@@ -73,9 +73,9 @@ export class ProcessModelService implements IProcessModelService {
 
     await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
-    const processModel: Model.Process = await this.retrieveProcessModel(processModelId);
+    const processModel = await this.retrieveProcessModel(processModelId);
 
-    const filteredProcessModel: Model.Process = await this.filterInaccessibleProcessModelElements(identity, processModel);
+    const filteredProcessModel = await this.filterInaccessibleProcessModelElements(identity, processModel);
 
     if (!filteredProcessModel) {
       throw new ForbiddenError('Access denied.');
@@ -88,14 +88,14 @@ export class ProcessModelService implements IProcessModelService {
 
     await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
-    const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getByHash(hash);
+    const definitionRaw = await this.processDefinitionRepository.getByHash(hash);
 
-    const parsedDefinition: Model.Definitions = await this.bpmnModelParser.parseXmlToObjectModel(definitionRaw.xml);
-    const processModel: Model.Process = parsedDefinition.processes.find((entry: Model.Process) => {
+    const parsedDefinition = await this.bpmnModelParser.parseXmlToObjectModel(definitionRaw.xml);
+    const processModel = parsedDefinition.processes.find((entry: Model.Process): boolean => {
       return entry.id === processModelId;
     });
 
-    const filteredProcessModel: Model.Process = await this.filterInaccessibleProcessModelElements(identity, processModel);
+    const filteredProcessModel = await this.filterInaccessibleProcessModelElements(identity, processModel);
 
     if (!filteredProcessModel) {
       throw new ForbiddenError('Access denied.');
@@ -108,7 +108,7 @@ export class ProcessModelService implements IProcessModelService {
 
     await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
-    const definitionRaw: ProcessDefinitionFromRepository = await this.processDefinitionRepository.getProcessDefinitionByName(name);
+    const definitionRaw = await this.processDefinitionRepository.getProcessDefinitionByName(name);
 
     if (!definitionRaw) {
       throw new NotFoundError(`Process definition with name "${name}" not found!`);
@@ -129,27 +129,27 @@ export class ProcessModelService implements IProcessModelService {
       parsedProcessDefinition = await this.bpmnModelParser.parseXmlToObjectModel(xml);
     } catch (error) {
       logger.error(`The XML for process "${name}" could not be parsed: ${error.message}`);
-      const errorMessage: string = `The XML for process "${name}" could not be parsed.`;
-      const parsingError: UnprocessableEntityError = new UnprocessableEntityError(errorMessage);
+      const errorMessage = `The XML for process "${name}" could not be parsed.`;
+      const parsingError = new UnprocessableEntityError(errorMessage);
 
       parsingError.additionalInformation = error;
 
       throw parsingError;
     }
 
-    const processDefinitionHasMoreThanOneProcessModel: boolean = parsedProcessDefinition.processes.length > 1;
+    const processDefinitionHasMoreThanOneProcessModel = parsedProcessDefinition.processes.length > 1;
     if (processDefinitionHasMoreThanOneProcessModel) {
-      const tooManyProcessModelsError: string = `The XML for process "${name}" contains more than one ProcessModel. This is currently not supported.`;
+      const tooManyProcessModelsError = `The XML for process "${name}" contains more than one ProcessModel. This is currently not supported.`;
       logger.error(tooManyProcessModelsError);
 
       throw new UnprocessableEntityError(tooManyProcessModelsError);
     }
 
-    const processsModel: Model.Process = parsedProcessDefinition.processes[0];
+    const processsModel = parsedProcessDefinition.processes[0];
 
-    const processModelIdIsNotEqualToDefinitionName: boolean = processsModel.id !== name;
+    const processModelIdIsNotEqualToDefinitionName = processsModel.id !== name;
     if (processModelIdIsNotEqualToDefinitionName) {
-      const namesDoNotMatchError: string = `The ProcessModel contained within the diagram "${name}" must also use the name "${name}"!`;
+      const namesDoNotMatchError = `The ProcessModel contained within the diagram "${name}" must also use the name "${name}"!`;
       logger.error(namesDoNotMatchError);
 
       throw new UnprocessableEntityError(namesDoNotMatchError);
@@ -158,9 +158,9 @@ export class ProcessModelService implements IProcessModelService {
 
   private async retrieveProcessModel(processModelId: string): Promise<Model.Process> {
 
-    const processModelList: Array<Model.Process> = await this.getProcessModelList();
+    const processModelList = await this.getProcessModelList();
 
-    const matchingProcessModel: Model.Process = processModelList.find((processModel: Model.Process): boolean => {
+    const matchingProcessModel = processModelList.find((processModel: Model.Process): boolean => {
       return processModel.id === processModelId;
     });
 
@@ -173,7 +173,7 @@ export class ProcessModelService implements IProcessModelService {
 
   private async getProcessModelList(): Promise<Array<Model.Process>> {
 
-    const definitions: Array<Model.Definitions> = await this.getDefinitionList();
+    const definitions = await this.getDefinitionList();
 
     const allProcessModels: Array<Model.Process> = [];
 
@@ -186,14 +186,13 @@ export class ProcessModelService implements IProcessModelService {
 
   private async getDefinitionList(): Promise<Array<Model.Definitions>> {
 
-    const definitionsRaw: Array<ProcessDefinitionFromRepository> = await this.processDefinitionRepository.getProcessDefinitions();
+    const definitionsRaw = await this.processDefinitionRepository.getProcessDefinitions();
 
-    const definitionsMapper: any = async(rawProcessModelData: ProcessDefinitionFromRepository): Promise<Model.Definitions> => {
+    const definitionsMapper = async (rawProcessModelData: ProcessDefinitionFromRepository): Promise<Model.Definitions> => {
       return this.bpmnModelParser.parseXmlToObjectModel(rawProcessModelData.xml);
     };
 
-    const definitionsList: Array<Model.Definitions> =
-      await Promise.map<ProcessDefinitionFromRepository, Model.Definitions>(definitionsRaw, definitionsMapper);
+    const definitionsList = await Promise.map<ProcessDefinitionFromRepository, Model.Definitions>(definitionsRaw, definitionsMapper);
 
     return definitionsList;
   }
@@ -203,9 +202,9 @@ export class ProcessModelService implements IProcessModelService {
     processModel: Model.Process,
   ): Promise<Model.Process> {
 
-    const processModelCopy: Model.Process = clone(processModel);
+    const processModelCopy = clone(processModel);
 
-    const processModelHasNoLanes: boolean = !(processModel.laneSet && processModel.laneSet.lanes && processModel.laneSet.lanes.length > 0);
+    const processModelHasNoLanes = !(processModel.laneSet && processModel.laneSet.lanes && processModel.laneSet.lanes.length > 0);
     if (processModelHasNoLanes) {
       return processModelCopy;
     }
@@ -213,8 +212,7 @@ export class ProcessModelService implements IProcessModelService {
     processModelCopy.laneSet = await this.filterOutInaccessibleLanes(processModelCopy.laneSet, identity);
     processModelCopy.flowNodes = this.getFlowNodesForLaneSet(processModelCopy.laneSet, processModel.flowNodes);
 
-    const processModelHasAccessibleStartEvent: boolean = this.checkIfProcessModelHasAccessibleStartEvents(processModelCopy);
-
+    const processModelHasAccessibleStartEvent = this.checkIfProcessModelHasAccessibleStartEvents(processModelCopy);
     if (!processModelHasAccessibleStartEvent) {
       return undefined;
     }
@@ -224,14 +222,14 @@ export class ProcessModelService implements IProcessModelService {
 
   private async filterOutInaccessibleLanes(laneSet: Model.ProcessElements.LaneSet, identity: IIdentity): Promise<Model.ProcessElements.LaneSet> {
 
-    const filteredLaneSet: Model.ProcessElements.LaneSet = clone(laneSet);
+    const filteredLaneSet = clone(laneSet);
     filteredLaneSet.lanes = [];
 
-    const userIsSuperAdmin: boolean = await this.checkIfUserIsSuperAdmin(identity);
+    const userIsSuperAdmin = await this.checkIfUserIsSuperAdmin(identity);
 
     for (const lane of laneSet.lanes) {
 
-      const checkIfUserHasLaneClaim: any = async(laneName: string): Promise<boolean> => {
+      const checkIfUserHasLaneClaim = async (laneName: string): Promise<boolean> => {
         try {
           await this.iamService.ensureHasClaim(identity, laneName);
 
@@ -241,17 +239,16 @@ export class ProcessModelService implements IProcessModelService {
         }
       };
 
-      const filteredLane: Model.ProcessElements.Lane = clone(lane);
+      const filteredLane = clone(lane);
 
-      const userCanNotAccessLane: boolean = !(userIsSuperAdmin || await checkIfUserHasLaneClaim(lane.name));
+      const userCanNotAccessLane = !(userIsSuperAdmin || await checkIfUserHasLaneClaim(lane.name));
 
       if (userCanNotAccessLane) {
         filteredLane.flowNodeReferences = [];
         delete filteredLane.childLaneSet;
       }
 
-      const laneHasChildLanes: boolean = filteredLane.childLaneSet !== undefined &&
-                                         filteredLane.childLaneSet !== null;
+      const laneHasChildLanes = filteredLane.childLaneSet !== undefined;
 
       if (laneHasChildLanes) {
         filteredLane.childLaneSet = await this.filterOutInaccessibleLanes(filteredLane.childLaneSet, identity);
@@ -264,8 +261,8 @@ export class ProcessModelService implements IProcessModelService {
   }
 
   private async ensureUserHasClaim(identity: IIdentity, claimName: string): Promise<void> {
-    const userIsSuperAdmin: boolean = await this.checkIfUserIsSuperAdmin(identity);
 
+    const userIsSuperAdmin = await this.checkIfUserIsSuperAdmin(identity);
     if (userIsSuperAdmin) {
       return;
     }
@@ -294,20 +291,17 @@ export class ProcessModelService implements IProcessModelService {
       // Consider a user who can only access sublane B.
       // If we were to allow him access to all references stored in lane A, he would also be granted access to the elements
       // from lane C, since they are contained within the reference set of lane A!
-      const childLaneSetIsNotEmpty: boolean = lane.childLaneSet !== undefined &&
-                                              lane.childLaneSet !== null &&
-                                              lane.childLaneSet.lanes !== undefined &&
-                                              lane.childLaneSet.lanes !== null &&
-                                              lane.childLaneSet.lanes.length > 0;
+      const childLaneSetIsNotEmpty = lane.childLaneSet !== undefined &&
+                                     lane.childLaneSet.lanes !== undefined &&
+                                     lane.childLaneSet.lanes.length > 0;
 
       if (childLaneSetIsNotEmpty) {
-        const accessibleChildLaneFlowNodes: Array<Model.Base.FlowNode> =
-        this.getFlowNodesForLaneSet(lane.childLaneSet, flowNodes);
+        const accessibleChildLaneFlowNodes = this.getFlowNodesForLaneSet(lane.childLaneSet, flowNodes);
 
         accessibleFlowNodes.push(...accessibleChildLaneFlowNodes);
       } else {
         for (const flowNodeId of lane.flowNodeReferences) {
-          const matchingFlowNode: Model.Base.FlowNode = flowNodes.find((flowNode: Model.Base.FlowNode): boolean => {
+          const matchingFlowNode = flowNodes.find((flowNode: Model.Base.FlowNode): boolean => {
             return flowNode.id === flowNodeId;
           });
 
@@ -324,10 +318,11 @@ export class ProcessModelService implements IProcessModelService {
   private checkIfProcessModelHasAccessibleStartEvents(processModel: Model.Process): boolean {
 
     // For this check to pass, it is sufficient for the ProcessModel to have at least one accessible start event.
-    const processModelHasAccessibleStartEvent: boolean = processModel.flowNodes.some((flowNode: Model.Base.FlowNode): boolean => {
+    const processModelHasAccessibleStartEvent = processModel.flowNodes.some((flowNode: Model.Base.FlowNode): boolean => {
       return flowNode.bpmnType === BpmnType.startEvent;
     });
 
     return processModelHasAccessibleStartEvent;
   }
+
 }
