@@ -70,9 +70,9 @@ export class ProcessModelService implements IProcessModelService {
       }
     }
 
-    const paginizedProcessModelList = this.applyPagination(filteredList, offset, limit);
+    const processModelSubset = this.applyPagination(filteredList, offset, limit);
 
-    return paginizedProcessModelList;
+    return processModelSubset;
   }
 
   public async getProcessModelById(identity: IIdentity, processModelId: string): Promise<Model.Process> {
