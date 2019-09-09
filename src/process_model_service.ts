@@ -1,3 +1,6 @@
+import * as clone from 'clone';
+import {Logger} from 'loggerhythm';
+
 import {
   BpmnType,
   IModelParser,
@@ -9,10 +12,12 @@ import {
 
 import {IIAMService, IIdentity} from '@essential-projects/iam_contracts';
 
-import {ForbiddenError, NotFoundError, UnprocessableEntityError} from '@essential-projects/errors_ts';
-
-import * as clone from 'clone';
-import {Logger} from 'loggerhythm';
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  UnprocessableEntityError,
+} from '@essential-projects/errors_ts';
 
 const logger = Logger.createLogger('processengine:persistence:process_model_service');
 
@@ -31,7 +36,6 @@ export class ProcessModelService implements IProcessModelService {
     iamService: IIAMService,
     processDefinitionRepository: IProcessDefinitionRepository,
   ) {
-
     this.processDefinitionRepository = processDefinitionRepository;
     this.iamService = iamService;
     this.bpmnModelParser = bpmnModelParser;
@@ -50,7 +54,7 @@ export class ProcessModelService implements IProcessModelService {
     return this.processDefinitionRepository.persistProcessDefinitions(name, xml, overwriteExisting);
   }
 
-  public async getProcessModels(identity: IIdentity): Promise<Array<Model.Process>> {
+  public async getProcessModels(identity: IIdentity, offset: number = 0, limit: number = 0): Promise<Array<Model.Process>> {
 
     await this.ensureUserHasClaim(identity, canReadProcessModelClaim);
 
@@ -66,7 +70,9 @@ export class ProcessModelService implements IProcessModelService {
       }
     }
 
-    return filteredList;
+    const paginizedProcessModelList = this.applyPagination(filteredList, offset, limit);
+
+    return paginizedProcessModelList;
   }
 
   public async getProcessModelById(identity: IIdentity, processModelId: string): Promise<Model.Process> {
@@ -321,6 +327,34 @@ export class ProcessModelService implements IProcessModelService {
     });
 
     return processModelHasAccessibleStartEvent;
+  }
+
+  private applyPagination(processModels: Array<Model.Process>, offset: number, limit: number): Array<Model.Process> {
+
+    if (offset >= processModels.length) {
+      logger.error(`Using an offset of ${offset} on a ProcessModelList with ${processModels.length} entries!`);
+
+      const error = new BadRequestError(`The offset of ${offset} is not valid!`);
+      error.additionalInformation = {
+        processModelListLength: processModels.length,
+        offsetUsed: offset,
+      } as any; //eslint-disable-line
+
+      throw error;
+    }
+
+    let processModelSubset = offset > 0
+      ? processModels.slice(offset)
+      : processModels;
+
+    const limitIsOutsideOfProcessModelList = limit < 1 || limit >= processModelSubset.length;
+    if (limitIsOutsideOfProcessModelList) {
+      return processModelSubset;
+    }
+
+    processModelSubset = processModelSubset.slice(0, limit);
+
+    return processModelSubset;
   }
 
 }
