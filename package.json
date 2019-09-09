@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "@essential-projects/errors_ts": "^1.4.4",
-    "@process-engine/process_model.contracts": "^2.0.0",
+    "@process-engine/process_model.contracts": "feature~add_limit_and_offset_to_list_queries",
     "bluebird-global": "^1.0.1",
     "clone": "^2.1.2",
     "loggerhythm": "^3.0.3"
