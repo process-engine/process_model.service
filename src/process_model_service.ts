@@ -332,15 +332,8 @@ export class ProcessModelService implements IProcessModelService {
   private applyPagination(processModels: Array<Model.Process>, offset: number, limit: number): Array<Model.Process> {
 
     if (offset > processModels.length) {
-      logger.error(`Using an offset of ${offset} on a ProcessModelList with ${processModels.length} entries!`);
-
-      const error = new BadRequestError(`The offset of ${offset} is not valid!`);
-      error.additionalInformation = {
-        processModelListLength: processModels.length,
-        offsetUsed: offset,
-      } as any; //eslint-disable-line
-
-      throw error;
+      logger.warn(`Using an offset of ${offset} on a ProcessModelList with ${processModels.length} entries. Returnijng an empty result set.`);
+      return [];
     }
 
     let processModelSubset = offset > 0
