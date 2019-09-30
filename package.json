@@ -22,7 +22,7 @@
   "homepage": "https://github.com/process-engine/process_model.service#readme",
   "dependencies": {
     "@essential-projects/errors_ts": "^1.4.4",
-    "@process-engine/process_model.contracts": "2.7.0-beta.1",
+    "@process-engine/process_model.contracts": "^2.7.0",
     "bluebird-global": "^1.0.1",
     "clone": "^2.1.2",
     "loggerhythm": "^3.0.3"
